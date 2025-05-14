@@ -1,0 +1,82 @@
+public with sharing class CaseUpdateHandler {
+    private static final String PARTNER_TYPE = 'Partner';
+    private static final String COMMUNITY_ORIGIN = 'Community';
+    private static final String HIGH_PRIORITY = 'High';
+    private static final String ESCALATED_STATUS = 'Escalated';
+    
+    public static void updateCases(List<Case> cases) {
+        // Guard clause - handle null input
+        if (cases == null) {
+            throw new IllegalArgumentException('Cases list cannot be null');
+        }
+        
+        // If list is empty, return early
+        if (cases.isEmpty()) {
+            return;
+        }
+
+        // Verify CRUD permissions
+        if (!Schema.sObjectType.Group.isAccessible() || 
+            !Schema.sObjectType.Account.isAccessible() || 
+            !Schema.sObjectType.Case.isUpdateable()) {
+            throw new SecurityException('Insufficient permissions to process cases');
+        }
+
+        // Get relevant queues with security check
+        List<Group> queues = [SELECT Id, Name 
+                            FROM Group 
+                            WHERE Type = 'Queue' 
+                            AND Name IN ('Partner Escalation Queue', 'Copado Support Queue')
+                            WITH SECURITY_ENFORCED];
+        
+        Map<String, Id> queueMap = new Map<String, Id>();
+        for(Group queue : queues) {
+            queueMap.put(queue.Name, queue.Id);
+        }
+
+        // Get related accounts for all cases
+        Set<Id> accountIds = new Set<Id>();
+        for(Case c : cases) {
+            if(c.AccountId != null) {
+                accountIds.add(c.AccountId);
+            }
+        }
+        
+        // Query account types with security check
+        Map<Id, Account> accountMap = new Map<Id, Account>([
+            SELECT Id, Type 
+            FROM Account 
+            WHERE Id IN :accountIds
+            WITH SECURITY_ENFORCED
+        ]);
+
+        // Process cases
+        List<Case> casesToUpdate = new List<Case>();
+        for(Case c : cases) {
+            Case caseToUpdate = c.clone(true, true, true, true);
+            
+            // Handle partner account cases
+            if(c.AccountId != null && 
+               accountMap.containsKey(c.AccountId) && 
+               PARTNER_TYPE.equals(accountMap.get(c.AccountId).Type) && 
+               HIGH_PRIORITY.equals(c.Priority)) {
+                caseToUpdate.Status = ESCALATED_STATUS;
+                caseToUpdate.IsEscalated = true;
+                caseToUpdate.OwnerId = queueMap.get('Partner Escalation Queue');
+            }
+            
+            // Handle community origin cases
+            if(COMMUNITY_ORIGIN.equals(c.Origin)) {
+                caseToUpdate.OwnerId = queueMap.get('Copado Support Queue');
+            }
+            
+            casesToUpdate.add(caseToUpdate);
+        }
+        
+        // Update cases with security check
+        if (!casesToUpdate.isEmpty()) {
+            Security.stripInaccessible(AccessType.UPDATABLE, casesToUpdate);
+            update casesToUpdate;
+        }
+    }
+}
