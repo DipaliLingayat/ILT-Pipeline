@@ -89,6 +89,12 @@
                 <identifier>RecordTrip_Start_Date_cField</identifier>
             </fieldInstance>
         </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldItem>Record.Test__c</fieldItem>
+                <identifier>RecordTest__cField</identifier>
+            </fieldInstance>
+        </itemInstances>
         <name>Facet-7511b3a6-efae-4518-a066-dc7bd59e44d2</name>
         <type>Facet</type>
     </flexiPageRegions>
