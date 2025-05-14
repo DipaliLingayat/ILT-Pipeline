@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Manage Travel App Objects Records</label>
+    <hasActivationRequired>false</hasActivationRequired>
     <fieldPermissions>
         <editable>true</editable>
         <field>Expense_Item__c.Amount__c</field>
@@ -45,8 +47,6 @@
         <field>Travel_Approval__c.Trip_Start_Date__c</field>
         <readable>true</readable>
     </fieldPermissions>
-    <hasActivationRequired>false</hasActivationRequired>
-    <label>Manage Travel App Objects Records</label>
     <objectPermissions>
         <allowCreate>true</allowCreate>
         <allowDelete>true</allowDelete>
